@@ -1,4 +1,6 @@
 from rest_framework import generics, permissions, status
+from rest_framework.authentication import TokenAuthentication
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.authtoken.models import Token
@@ -12,10 +14,12 @@ from user.serializers import (
 
 class CreateUserView(generics.CreateAPIView):
     serializer_class = UserCreateSerializer
+    permission_classes = [AllowAny]
 
 
 class LoginView(ObtainAuthToken):
     renderer_classes = api_settings.DEFAULT_RENDERER_CLASSES
+    permission_classes = [AllowAny]
 
     def post(self, request, *args, **kwargs):
         serializer = self.serializer_class(
@@ -37,7 +41,23 @@ class LoginView(ObtainAuthToken):
 
 class ManageUserView(generics.RetrieveUpdateAPIView):
     serializer_class = UserSerializer
-    permission_classes = (permissions.IsAuthenticated,)
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
 
     def get_object(self):
         return self.request.user
+
+    def update(self, request, *args, **kwargs):
+        user = self.get_object()
+        serializer = self.get_serializer(user, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+
+        password = request.data.get('password')
+        if password:
+            user.set_password(password)
+            user.save()
+            serializer.validated_data.pop('password', None)
+
+        serializer.save()
+
+        return Response(serializer.data)
