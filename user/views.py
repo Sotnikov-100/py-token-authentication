@@ -52,11 +52,11 @@ class ManageUserView(generics.RetrieveUpdateAPIView):
         serializer = self.get_serializer(user, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
 
-        password = request.data.get('password')
+        password = request.data.get("password")
         if password:
             user.set_password(password)
             user.save()
-            serializer.validated_data.pop('password', None)
+            serializer.validated_data.pop("password", None)
 
         serializer.save()
 
